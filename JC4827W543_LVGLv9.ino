@@ -38,6 +38,7 @@
 #include <PINS_JC4827W543.h> // Board pin definitions
 #include "TAMC_GT911.h"      // Touch controller library
 #include <DHT.h>             // DHT sensor library
+#include <Preferences.h>     // ESP32 NVS for settings storage
 
 // ============================================================================
 // MODULE INCLUDES (Order matters - config first, then dependencies)
@@ -62,6 +63,21 @@
 #define TOUCH_HEIGHT 272
 
 TAMC_GT911 touchController = TAMC_GT911(TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST, TOUCH_WIDTH, TOUCH_HEIGHT);
+
+// ============================================================================
+// BRIGHTNESS CONTROL CONFIGURATION
+// ============================================================================
+
+// PWM configuration for backlight control
+#define BACKLIGHT_PWM_CHANNEL 0
+#define BACKLIGHT_PWM_FREQ 5000
+#define BACKLIGHT_PWM_RESOLUTION 8  // 8-bit resolution (0-255)
+
+// Preferences storage
+Preferences preferences;
+
+// Current brightness value (0-100%)
+int currentBrightness = 80;  // Default 80%
 
 // ============================================================================
 // DISPLAY GLOBAL VARIABLES
@@ -133,6 +149,82 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
 }
 
 // ============================================================================
+// BRIGHTNESS CONTROL FUNCTIONS
+// ============================================================================
+
+/**
+ * @brief Set display brightness
+ * @param brightness Brightness level (0-100%)
+ */
+void setBrightness(int brightness) {
+  // Clamp brightness to valid range
+  if (brightness < 0) brightness = 0;
+  if (brightness > 100) brightness = 100;
+
+  currentBrightness = brightness;
+
+  // Convert 0-100% to 0-255 PWM value
+  int pwmValue = map(brightness, 0, 100, 0, 255);
+
+  // Apply PWM to backlight (ESP32 Arduino Core 3.x uses ledcWrite with pin directly)
+  ledcWrite(GFX_BL, pwmValue);
+
+  #if DEBUG_SERIAL
+    DEBUG_PRINT("Brightness set to: ");
+    DEBUG_PRINT(brightness);
+    DEBUG_PRINT("% (PWM: ");
+    DEBUG_PRINT(pwmValue);
+    DEBUG_PRINTLN(")");
+  #endif
+}
+
+/**
+ * @brief Save brightness to preferences
+ * @param brightness Brightness level to save (0-100%)
+ */
+void saveBrightness(int brightness) {
+  preferences.begin("settings", false);
+  preferences.putInt("brightness", brightness);
+  preferences.end();
+
+  #if DEBUG_SERIAL
+    DEBUG_PRINT("Brightness saved: ");
+    DEBUG_PRINT(brightness);
+    DEBUG_PRINTLN("%");
+  #endif
+}
+
+/**
+ * @brief Load brightness from preferences
+ * @return Saved brightness level (0-100%), or default if not found
+ */
+int loadBrightness() {
+  preferences.begin("settings", true); // Read-only mode
+  int brightness = preferences.getInt("brightness", 80); // Default 80%
+  preferences.end();
+
+  // Clamp to valid range
+  if (brightness < 0) brightness = 0;
+  if (brightness > 100) brightness = 100;
+
+  #if DEBUG_SERIAL
+    DEBUG_PRINT("Brightness loaded: ");
+    DEBUG_PRINT(brightness);
+    DEBUG_PRINTLN("%");
+  #endif
+
+  return brightness;
+}
+
+/**
+ * @brief Get current brightness value
+ * @return Current brightness level (0-100%)
+ */
+int getBrightness() {
+  return currentBrightness;
+}
+
+// ============================================================================
 // ARDUINO SETUP
 // ============================================================================
 
@@ -159,9 +251,14 @@ void setup() {
     }
   }
 
-  // Set backlight to high intensity
-  pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
+  // Configure PWM for backlight control
+  // ESP32 Arduino Core 3.x uses ledcAttach instead of ledcSetup/ledcAttachPin
+  ledcAttach(GFX_BL, BACKLIGHT_PWM_FREQ, BACKLIGHT_PWM_RESOLUTION);
+
+  // Load saved brightness and apply it
+  currentBrightness = loadBrightness();
+  setBrightness(currentBrightness);
+
   gfx->fillScreen(RGB565_BLACK);
   Serial.println("Display initialized successfully");
 

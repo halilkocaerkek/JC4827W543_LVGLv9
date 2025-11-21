@@ -109,13 +109,13 @@ lv_obj_t* createMenuButton(lv_obj_t *parent, lv_coord_t x, lv_coord_t y,
   // Create icon label
   lv_obj_t *icon = lv_label_create(btn);
   lv_label_set_text(icon, icon_symbol);
-  lv_obj_set_style_text_font(icon, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(icon, &lv_font_montserrat_32, 0);
   lv_obj_set_style_text_color(icon, COLOR_TEXT, 0);
 
   // Create text label
   lv_obj_t *label = lv_label_create(btn);
   lv_label_set_text(label, label_text);
-  lv_obj_set_style_text_font(label, &lv_font_montserrat_16, 0);
+  lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(label, COLOR_TEXT, 0);
   lv_obj_set_style_pad_top(label, 10, 0);
 
@@ -146,7 +146,7 @@ void createMenuScreen() {
   // Create title
   lv_obj_t *title = lv_label_create(menu_screen);
   lv_label_set_text(title, "Temperature & Humidity Tracker");
-  lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_18, 0);
   lv_obj_set_style_text_color(title, COLOR_TEXT, 0);
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 15);
 
@@ -186,7 +186,7 @@ void createMenuScreen() {
   lv_obj_t *footer = lv_label_create(menu_screen);
   lv_label_set_text(footer, "ESP32-S3 | LVGL v" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR));
   lv_obj_set_style_text_color(footer, COLOR_TEXT_SECONDARY, 0);
-  lv_obj_set_style_text_font(footer, &lv_font_montserrat_12, 0);
+  lv_obj_set_style_text_font(footer, &lv_font_montserrat_14, 0);
   lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -10);
 
   #if DEBUG_NAVIGATION

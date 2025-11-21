@@ -118,6 +118,9 @@ const char* getHumidityStatus(float humid) {
 // EVENT HANDLERS
 // ============================================================================
 
+// Forward declaration
+void updateTempHumidDisplay();
+
 /**
  * @brief Event handler for back button
  */
@@ -284,7 +287,7 @@ void createTempHumidScreen() {
   // Create title
   lv_obj_t *title = lv_label_create(temphumid_screen);
   lv_label_set_text(title, "Temperature & Humidity");
-  lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_18, 0);
   lv_obj_set_style_text_color(title, COLOR_TEXT, 0);
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 5);
 
@@ -292,7 +295,7 @@ void createTempHumidScreen() {
   lv_obj_t *temp_container = lv_obj_create(temphumid_screen);
   lv_obj_set_size(temp_container, 220, 140);
   lv_obj_set_pos(temp_container, 10, 35);
-  lv_obj_set_style_bg_color(temp_container, lv_color_hex(0x1A1A1A), 0);
+  lv_obj_set_style_bg_color(temp_container, lv_color_hex(0x303030), 0);
   lv_obj_set_style_border_color(temp_container, COLOR_PRIMARY, 0);
   lv_obj_set_style_border_width(temp_container, 2, 0);
   lv_obj_set_style_radius(temp_container, 10, 0);
@@ -304,7 +307,7 @@ void createTempHumidScreen() {
 
   temp_value_label = lv_label_create(temp_container);
   lv_label_set_text(temp_value_label, "--.-°C");
-  lv_obj_set_style_text_font(temp_value_label, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(temp_value_label, &lv_font_montserrat_32, 0);
   lv_obj_set_style_text_color(temp_value_label, COLOR_PRIMARY, 0);
   lv_obj_align(temp_value_label, LV_ALIGN_CENTER, 0, 10);
 
@@ -324,7 +327,7 @@ void createTempHumidScreen() {
   lv_obj_t *humid_container = lv_obj_create(temphumid_screen);
   lv_obj_set_size(humid_container, 220, 140);
   lv_obj_set_pos(humid_container, 250, 35);
-  lv_obj_set_style_bg_color(humid_container, lv_color_hex(0x1A1A1A), 0);
+  lv_obj_set_style_bg_color(humid_container, lv_color_hex(0x303030), 0);
   lv_obj_set_style_border_color(humid_container, COLOR_SECONDARY, 0);
   lv_obj_set_style_border_width(humid_container, 2, 0);
   lv_obj_set_style_radius(humid_container, 10, 0);
@@ -336,7 +339,7 @@ void createTempHumidScreen() {
 
   humid_value_label = lv_label_create(humid_container);
   lv_label_set_text(humid_value_label, "--.-%%");
-  lv_obj_set_style_text_font(humid_value_label, &lv_font_montserrat_48, 0);
+  lv_obj_set_style_text_font(humid_value_label, &lv_font_montserrat_32, 0);
   lv_obj_set_style_text_color(humid_value_label, COLOR_SECONDARY, 0);
   lv_obj_align(humid_value_label, LV_ALIGN_CENTER, 0, 10);
 
@@ -356,20 +359,20 @@ void createTempHumidScreen() {
   minmax_label = lv_label_create(temphumid_screen);
   lv_label_set_text(minmax_label, "Min: --°C / --%%  |  Max: --°C / --%%");
   lv_obj_set_style_text_color(minmax_label, COLOR_TEXT_SECONDARY, 0);
-  lv_obj_set_style_text_font(minmax_label, &lv_font_montserrat_12, 0);
+  lv_obj_set_style_text_font(minmax_label, &lv_font_montserrat_14, 0);
   lv_obj_align(minmax_label, LV_ALIGN_TOP_MID, 0, 185);
 
   // Status and timestamp
   status_label = lv_label_create(temphumid_screen);
   lv_label_set_text(status_label, "Initializing...");
   lv_obj_set_style_text_color(status_label, COLOR_TEXT_SECONDARY, 0);
-  lv_obj_set_style_text_font(status_label, &lv_font_montserrat_12, 0);
+  lv_obj_set_style_text_font(status_label, &lv_font_montserrat_14, 0);
   lv_obj_set_pos(status_label, 10, 205);
 
   timestamp_label = lv_label_create(temphumid_screen);
   lv_label_set_text(timestamp_label, "Uptime: 00:00:00");
   lv_obj_set_style_text_color(timestamp_label, COLOR_TEXT_SECONDARY, 0);
-  lv_obj_set_style_text_font(timestamp_label, &lv_font_montserrat_12, 0);
+  lv_obj_set_style_text_font(timestamp_label, &lv_font_montserrat_14, 0);
   lv_obj_align(timestamp_label, LV_ALIGN_TOP_RIGHT, -10, 205);
 
   // Control buttons at bottom

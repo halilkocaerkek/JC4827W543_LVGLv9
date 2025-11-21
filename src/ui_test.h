@@ -52,6 +52,11 @@ lv_obj_t *test_back_button_label = NULL;
 // Menu screen creation function (defined in ui_menu.h or main file)
 extern void createMenuScreen();
 
+// Brightness control functions (defined in main .ino file)
+extern void setBrightness(int brightness);
+extern void saveBrightness(int brightness);
+extern int getBrightness();
+
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
@@ -107,6 +112,7 @@ static void btn_event_cb(lv_event_t *e)
  *
  * Original code from JC4827W543_LVGLv9.ino lines 89-104.
  * Updates the percentage label and rotates it to follow the arc position.
+ * NOW ALSO controls display brightness and saves the setting.
  *
  * @param e Pointer to the LVGL event object
  */
@@ -121,10 +127,14 @@ static void value_changed_event_cb(lv_event_t *e)
   // Rotate the label to the current position of the arc
   lv_arc_rotate_obj_to_angle(arc, label, 25);
 
+  // Control brightness with arc value (0-100%)
+  setBrightness(arc_value);
+  saveBrightness(arc_value);
+
   // Print arc value to serial
   Serial.print("Arc value changed: ");
   Serial.print(arc_value);
-  Serial.println("%");
+  Serial.println("% - Brightness updated");
 }
 
 // ============================================================================
@@ -168,7 +178,7 @@ void createTestScreen()
   test_title_label = lv_label_create(test_screen);
   lv_label_set_text(test_title_label, "UI Test Screen");
   lv_obj_set_style_text_color(test_title_label, COLOR_TEXT, 0);
-  lv_obj_set_style_text_font(test_title_label, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(test_title_label, &lv_font_montserrat_18, 0);
   lv_obj_align(test_title_label, LV_ALIGN_TOP_MID, 0, 10);
 
   // -------------------------------------------------------------------------
@@ -193,12 +203,17 @@ void createTestScreen()
   lv_obj_set_size(test_arc, 150, 150);
   lv_arc_set_rotation(test_arc, 135);
   lv_arc_set_bg_angles(test_arc, 0, 270);
-  lv_arc_set_value(test_arc, 10);
+
+  // Set arc value to current brightness (loaded from preferences)
+  int currentBrightness = getBrightness();
+  lv_arc_set_value(test_arc, currentBrightness);
+
   lv_obj_center(test_arc);
   lv_obj_add_event_cb(test_arc, value_changed_event_cb, LV_EVENT_VALUE_CHANGED, test_arc_label);
 
-  // Manually update the label for the first time
-  lv_obj_send_event(test_arc, LV_EVENT_VALUE_CHANGED, NULL);
+  // Manually update the label for the first time (without triggering brightness change)
+  lv_label_set_text_fmt(test_arc_label, "%d%%", currentBrightness);
+  lv_arc_rotate_obj_to_angle(test_arc, test_arc_label, 25);
 
   // -------------------------------------------------------------------------
   // Back Button

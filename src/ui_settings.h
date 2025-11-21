@@ -75,21 +75,21 @@ void createSettingsScreen() {
   // Create title
   lv_obj_t *title = lv_label_create(settings_screen);
   lv_label_set_text(title, "Settings");
-  lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_22, 0);
   lv_obj_set_style_text_color(title, COLOR_TEXT, 0);
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
 
   // Create main message label
   lv_obj_t *message_label = lv_label_create(settings_screen);
   lv_label_set_text(message_label, "Settings coming soon...");
-  lv_obj_set_style_text_font(message_label, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(message_label, &lv_font_montserrat_18, 0);
   lv_obj_set_style_text_color(message_label, COLOR_ACCENT, 0);
   lv_obj_align(message_label, LV_ALIGN_CENTER, 0, -30);
 
   // Create feature list container
   lv_obj_t *feature_container = lv_obj_create(settings_screen);
   lv_obj_set_size(feature_container, 320, 140);
-  lv_obj_set_style_bg_color(feature_container, lv_color_hex(0x2A2A2A), 0);
+  lv_obj_set_style_bg_color(feature_container, lv_color_hex(0x404040), 0);
   lv_obj_set_style_border_width(feature_container, 2, 0);
   lv_obj_set_style_border_color(feature_container, COLOR_PRIMARY, 0);
   lv_obj_set_style_radius(feature_container, 10, 0);

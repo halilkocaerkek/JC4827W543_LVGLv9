@@ -53,14 +53,14 @@
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 272
 
-// LVGL Colors
+// LVGL Colors (Brightened for better visibility)
 #define COLOR_PRIMARY lv_color_hex(0x2196F3)    // Blue
 #define COLOR_SECONDARY lv_color_hex(0x4CAF50)  // Green
 #define COLOR_ACCENT lv_color_hex(0xFF9800)     // Orange
 #define COLOR_DANGER lv_color_hex(0xF44336)     // Red
-#define COLOR_BACKGROUND lv_color_hex(0x212121) // Dark gray
+#define COLOR_BACKGROUND lv_color_hex(0x000000) // Black (was too dark gray)
 #define COLOR_TEXT lv_color_hex(0xFFFFFF)       // White
-#define COLOR_TEXT_SECONDARY lv_color_hex(0xBDBDBD) // Light gray
+#define COLOR_TEXT_SECONDARY lv_color_hex(0xE0E0E0) // Brighter light gray
 
 // Menu button dimensions
 #define MENU_BUTTON_WIDTH 140
