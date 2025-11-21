@@ -1,45 +1,109 @@
-// Tutorial : https://youtu.be/mnOzfRFQJIM
-// LVGLv9 for the JC4827W543 development board
-// Use board "ESP32S3 Dev Module" from esp32 Arduino Core by Espressif (last tested on v3.2.0)
-// Do not forget to setup and configure lv_conf.h : https://docs.lvgl.io/master/get-started/platforms/arduino.html
+/**
+ * @file JC4827W543_LVGLv9.ino
+ * @brief Temperature and Humidity Tracker for JC4827W543 Development Board
+ *
+ * This application provides a menu-driven interface for monitoring temperature
+ * and humidity using a DHT11 sensor, along with UI testing capabilities.
+ *
+ * Hardware:
+ * - JC4827W543 ESP32-S3 board with 4.3" TFT display (480x272)
+ * - GT911 capacitive touch controller
+ * - DHT11 temperature/humidity sensor on GPIO 1
+ *
+ * Features:
+ * - Menu system with 3 screens
+ * - Real-time temperature and humidity monitoring
+ * - Min/Max value tracking
+ * - Temperature unit conversion (°C/°F)
+ * - UI test screen with LVGL widgets
+ * - Settings placeholder for future features
+ *
+ * Tutorial: https://youtu.be/mnOzfRFQJIM
+ * Board: ESP32S3 Dev Module (esp32 Arduino Core by Espressif v3.2.0)
+ *
+ * Required Libraries:
+ * - lvgl (v9.2.2)
+ * - GFX Library for Arduino (v1.5.6)
+ * - Dev Device Pins (v0.0.2)
+ * - TAMC_GT911 (v1.0.2)
+ * - DHT sensor library by Adafruit (v1.4.4+)
+ * - Adafruit Unified Sensor (v1.1.14+)
+ */
 
-#include <lvgl.h>            // Install "lvgl" with the Library Manager (last tested on v9.2.2)
-#include <PINS_JC4827W543.h> // Install "GFX Library for Arduino" with the Library Manager (last tested on v1.5.6)
-                             // Install "Dev Device Pins" with the Library Manager (last tested on v0.0.2)
-#include "TAMC_GT911.h"      // Install "TAMC_GT911" with the Library Manager (last tested on v1.0.2)
-// Touch Controller
+// ============================================================================
+// LIBRARY INCLUDES
+// ============================================================================
+
+#include <lvgl.h>            // LVGL graphics library
+#include <PINS_JC4827W543.h> // Board pin definitions
+#include "TAMC_GT911.h"      // Touch controller library
+#include <DHT.h>             // DHT sensor library
+
+// ============================================================================
+// MODULE INCLUDES (Order matters - config first, then dependencies)
+// ============================================================================
+
+#include "src/config.h"          // Configuration and constants
+#include "src/sensor_dht11.h"    // DHT11 sensor module
+#include "src/ui_menu.h"         // Main menu screen
+#include "src/ui_test.h"         // UI test screen
+#include "src/ui_temphumid.h"    // Temperature/Humidity screen
+#include "src/ui_settings.h"     // Settings screen
+
+// ============================================================================
+// TOUCH CONTROLLER CONFIGURATION
+// ============================================================================
+
 #define TOUCH_SDA 8
 #define TOUCH_SCL 4
 #define TOUCH_INT 3
 #define TOUCH_RST 38
 #define TOUCH_WIDTH 480
 #define TOUCH_HEIGHT 272
+
 TAMC_GT911 touchController = TAMC_GT911(TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST, TOUCH_WIDTH, TOUCH_HEIGHT);
 
-// Display global variables
+// ============================================================================
+// DISPLAY GLOBAL VARIABLES
+// ============================================================================
+
 uint32_t screenWidth;
 uint32_t screenHeight;
 uint32_t bufSize;
 lv_display_t *disp;
 lv_color_t *disp_draw_buf;
 
-// LVGL calls this function to print log information
-void my_print(lv_log_level_t level, const char *buf)
-{
+// ============================================================================
+// LVGL CALLBACK FUNCTIONS
+// ============================================================================
+
+/**
+ * @brief LVGL log callback function
+ * @param level Log level
+ * @param buf Log message buffer
+ */
+void my_print(lv_log_level_t level, const char *buf) {
   LV_UNUSED(level);
   Serial.println(buf);
   Serial.flush();
 }
 
-// LVGL calls this function to retrieve elapsed time
-uint32_t millis_cb(void)
-{
+/**
+ * @brief LVGL tick callback function
+ * @return Current milliseconds for LVGL timing
+ */
+uint32_t millis_cb(void) {
   return millis();
 }
 
-// LVGL calls this function when a rendered image needs to copied to the display
-void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
-{
+/**
+ * @brief LVGL display flush callback
+ * Transfers rendered image to display hardware
+ * @param disp Display object
+ * @param area Area to update
+ * @param px_map Pixel map data
+ */
+void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
   uint32_t w = lv_area_get_width(area);
   uint32_t h = lv_area_get_height(area);
 
@@ -48,174 +112,180 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
   lv_disp_flush_ready(disp);
 }
 
-// LVGL calls this function to read the touchpad
-void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
-{
-  // Update the touch data from the GT911 touch controller
+/**
+ * @brief LVGL touchpad read callback
+ * Reads touch controller and updates LVGL touch data
+ * @param indev Input device object
+ * @param data Touch data structure to update
+ */
+void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
+  // Update touch data from GT911 controller
   touchController.read();
 
-  // If a touch is detected, update the LVGL data structure with the first point's coordinates.
-  if (touchController.isTouched && touchController.touches > 0)
-  {
+  // If touch detected, update LVGL with first point's coordinates
+  if (touchController.isTouched && touchController.touches > 0) {
     data->point.x = touchController.points[0].x;
     data->point.y = touchController.points[0].y;
-    data->state = LV_INDEV_STATE_PRESSED; // Touch is pressed
-  }
-  else
-  {
-    data->state = LV_INDEV_STATE_RELEASED; // No touch detected
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
   }
 }
 
-static void btn_event_cb(lv_event_t *e)
-{
-  lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
-  if (code == LV_EVENT_CLICKED)
-  {
-    static uint8_t cnt = 0;
-    cnt++;
+// ============================================================================
+// ARDUINO SETUP
+// ============================================================================
 
-    /*Get the first child of the button which is the label and change its text*/
-    lv_obj_t *label = lv_obj_get_child(btn, 0);
-    lv_label_set_text_fmt(label, "Button: %d", cnt);
+void setup() {
+  // Initialize serial communication
+  Serial.begin(SERIAL_BAUD_RATE);
+  Serial.println("\n\n================================================");
+  Serial.println("Temperature & Humidity Tracker");
+  Serial.println("================================================");
+  Serial.println("Board: JC4827W543 (ESP32-S3)");
 
-    // Print button click count to serial
-    Serial.print("Button clicked - Count: ");
-    Serial.println(cnt);
-  }
-}
-
-static void value_changed_event_cb(lv_event_t * e)
-{
-    lv_obj_t * arc = lv_event_get_target_obj(e);
-    lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
-    int32_t arc_value = lv_arc_get_value(arc);
-
-    lv_label_set_text_fmt(label, "%" LV_PRId32 "%%", arc_value);
-
-    /*Rotate the label to the current position of the arc*/
-    lv_arc_rotate_obj_to_angle(arc, label, 25);
-
-    // Print arc value to serial
-    Serial.print("Arc value changed: ");
-    Serial.print(arc_value);
-    Serial.println("%");
-}
-
-void setup()
-{
-  Serial.begin(115200);
-  Serial.println("Arduino_GFX LVGL_Arduino_v9 example ");
-  String LVGL_Arduino = String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  String LVGL_Arduino = String("LVGL v") + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Serial.println(LVGL_Arduino);
+  Serial.println("================================================\n");
 
-  // Init Display
-  if (!gfx->begin())
-  {
-    Serial.println("gfx->begin() failed!");
-    while (true)
-    {
-      /* no need to continue */
+  // ========================================
+  // Initialize Display
+  // ========================================
+  Serial.println("Initializing display...");
+  if (!gfx->begin()) {
+    Serial.println("ERROR: Display initialization failed!");
+    while (true) {
+      delay(1000);
     }
   }
-  // Set the backlight of the screen to High intensity
+
+  // Set backlight to high intensity
   pinMode(GFX_BL, OUTPUT);
   digitalWrite(GFX_BL, HIGH);
   gfx->fillScreen(RGB565_BLACK);
+  Serial.println("Display initialized successfully");
 
-  // Init touch device
+  // ========================================
+  // Initialize Touch Controller
+  // ========================================
+  Serial.println("Initializing touch controller...");
   touchController.begin();
-  touchController.setRotation(ROTATION_INVERTED); // Change as needed
+  touchController.setRotation(ROTATION_INVERTED);
+  Serial.println("Touch controller initialized");
 
-  // init LVGL
+  // ========================================
+  // Initialize LVGL
+  // ========================================
+  Serial.println("Initializing LVGL...");
   lv_init();
 
-  // Set a tick source so that LVGL will know how much time elapsed
+  // Set tick source for LVGL timing
   lv_tick_set_cb(millis_cb);
 
-  // register print function for debugging
-#if LV_USE_LOG != 0
-  lv_log_register_print_cb(my_print);
-#endif
+  // Register print function for debugging
+  #if LV_USE_LOG != 0
+    lv_log_register_print_cb(my_print);
+  #endif
 
+  // Configure display buffer
   screenWidth = gfx->width();
   screenHeight = gfx->height();
   bufSize = screenWidth * 40;
 
+  Serial.print("Screen resolution: ");
+  Serial.print(screenWidth);
+  Serial.print("x");
+  Serial.println(screenHeight);
+  Serial.print("Buffer size: ");
+  Serial.print(bufSize);
+  Serial.println(" pixels");
+
+  // Allocate display buffer
   disp_draw_buf = (lv_color_t *)heap_caps_malloc(bufSize * 2, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (!disp_draw_buf)
-  {
-    // remove MALLOC_CAP_INTERNAL flag try again
+  if (!disp_draw_buf) {
+    // Retry without MALLOC_CAP_INTERNAL flag
     disp_draw_buf = (lv_color_t *)heap_caps_malloc(bufSize * 2, MALLOC_CAP_8BIT);
   }
-  if (!disp_draw_buf)
-  {
-    Serial.println("LVGL disp_draw_buf allocate failed!");
-    while (true)
-    {
-      /* no need to continue */
+
+  if (!disp_draw_buf) {
+    Serial.println("ERROR: LVGL display buffer allocation failed!");
+    while (true) {
+      delay(1000);
     }
   }
-  else
-  {
-    disp = lv_display_create(screenWidth, screenHeight);
-    lv_display_set_flush_cb(disp, my_disp_flush);
-    lv_display_set_buffers(disp, disp_draw_buf, NULL, bufSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // Create input device (touchpad of the JC4827W543)
-    lv_indev_t *indev = lv_indev_create();
-    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, my_touchpad_read);
+  // Create LVGL display
+  disp = lv_display_create(screenWidth, screenHeight);
+  lv_display_set_flush_cb(disp, my_disp_flush);
+  lv_display_set_buffers(disp, disp_draw_buf, NULL, bufSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // Create some widgets to see if everything is working
-    lv_obj_t *title_label = lv_label_create(lv_screen_active());
-    lv_label_set_text(title_label, "Merhaba Arduino, I'm LVGL!(V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH) ")");
-    lv_obj_align(title_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+  // Create LVGL input device (touchpad)
+  lv_indev_t *indev = lv_indev_create();
+  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_read_cb(indev, my_touchpad_read);
 
-    // Button Widget
-    lv_obj_t *btn = lv_button_create(lv_screen_active());       /*Add a button to the current screen*/
-    lv_obj_set_pos(btn, 10, 10);                                /*Set its position*/
-    lv_obj_set_size(btn, 120, 50);                              /*Set its size*/
-    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+  Serial.println("LVGL initialized successfully");
 
-    lv_obj_t *btn_label = lv_label_create(btn); /*Add a label to the button*/
-    lv_label_set_text(btn_label, "Button");     /*Set the label's text*/
-    lv_obj_center(btn_label);
-
-    // Arc Widget
-    lv_obj_t * label = lv_label_create(lv_screen_active());
-
-    lv_obj_t *arc = lv_arc_create(lv_screen_active());
-    lv_obj_set_size(arc, 150, 150);
-    lv_arc_set_rotation(arc, 135);
-    lv_arc_set_bg_angles(arc, 0, 270);
-    lv_arc_set_value(arc, 10);
-    lv_obj_center(arc);
-    lv_obj_add_event_cb(arc, value_changed_event_cb, LV_EVENT_VALUE_CHANGED, label);
-
-    // Manually update the label for the first time
-    lv_obj_send_event(arc, LV_EVENT_VALUE_CHANGED, NULL);    
+  // ========================================
+  // Initialize DHT11 Sensor
+  // ========================================
+  Serial.println("\nInitializing DHT11 sensor...");
+  if (!initDHT11()) {
+    Serial.println("WARNING: DHT11 initialization failed!");
+    Serial.println("Check wiring: GPIO 1 for data pin");
+    Serial.println("Continuing with sensor offline...");
   }
 
-  Serial.println("Setup done");
+  // ========================================
+  // Create Main Menu Screen
+  // ========================================
+  Serial.println("\nCreating main menu...");
+  createMenuScreen();
+
+  Serial.println("\n================================================");
+  Serial.println("Setup complete! System ready.");
+  Serial.println("================================================\n");
+
+  #if DEBUG_MEMORY
+    Serial.print("Free heap: ");
+    Serial.print(ESP.getFreeHeap());
+    Serial.println(" bytes");
+  #endif
 }
 
-void loop()
-{
-  lv_task_handler(); /* let the GUI do its work */
+// ============================================================================
+// ARDUINO MAIN LOOP
+// ============================================================================
 
-#ifdef DIRECT_MODE
-#if defined(CANVAS) || defined(RGB_PANEL) || defined(DSI_PANEL)
-  gfx->flush();
-#else  // !(defined(CANVAS) || defined(RGB_PANEL) || defined(DSI_PANEL))
-  gfx->draw16bitRGBBitmap(0, 0, (uint16_t *)disp_draw_buf, screenWidth, screenHeight);
-#endif // !(defined(CANVAS) || defined(RGB_PANEL) || defined(DSI_PANEL))
-#else  // !DIRECT_MODE
-#ifdef CANVAS
-  gfx->flush();
-#endif
-#endif // !DIRECT_MODE
+void loop() {
+  // Let LVGL handle its tasks (rendering, animations, events)
+  lv_task_handler();
 
+  // Update DHT11 sensor readings
+  updateDHT11();
+
+  // Update temperature/humidity display if that screen is active
+  if (temphumid_screen != NULL) {
+    static unsigned long lastUpdate = 0;
+    if (millis() - lastUpdate >= 500) {  // Update display every 500ms
+      updateTempHumidDisplay();
+      lastUpdate = millis();
+    }
+  }
+
+  // Handle direct mode rendering if needed
+  #ifdef DIRECT_MODE
+    #if defined(CANVAS) || defined(RGB_PANEL) || defined(DSI_PANEL)
+      gfx->flush();
+    #else
+      gfx->draw16bitRGBBitmap(0, 0, (uint16_t *)disp_draw_buf, screenWidth, screenHeight);
+    #endif
+  #else
+    #ifdef CANVAS
+      gfx->flush();
+    #endif
+  #endif
+
+  // Small delay to prevent watchdog issues
   delay(5);
 }
