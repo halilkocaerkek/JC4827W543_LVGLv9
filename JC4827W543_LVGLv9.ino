@@ -79,6 +79,10 @@ static void btn_event_cb(lv_event_t *e)
     /*Get the first child of the button which is the label and change its text*/
     lv_obj_t *label = lv_obj_get_child(btn, 0);
     lv_label_set_text_fmt(label, "Button: %d", cnt);
+
+    // Print button click count to serial
+    Serial.print("Button clicked - Count: ");
+    Serial.println(cnt);
   }
 }
 
@@ -86,11 +90,17 @@ static void value_changed_event_cb(lv_event_t * e)
 {
     lv_obj_t * arc = lv_event_get_target_obj(e);
     lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
+    int32_t arc_value = lv_arc_get_value(arc);
 
-    lv_label_set_text_fmt(label, "%" LV_PRId32 "%%", lv_arc_get_value(arc));
+    lv_label_set_text_fmt(label, "%" LV_PRId32 "%%", arc_value);
 
     /*Rotate the label to the current position of the arc*/
     lv_arc_rotate_obj_to_angle(arc, label, 25);
+
+    // Print arc value to serial
+    Serial.print("Arc value changed: ");
+    Serial.print(arc_value);
+    Serial.println("%");
 }
 
 void setup()
@@ -160,7 +170,7 @@ void setup()
 
     // Create some widgets to see if everything is working
     lv_obj_t *title_label = lv_label_create(lv_screen_active());
-    lv_label_set_text(title_label, "Hello Arduino, I'm LVGL!(V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH) ")");
+    lv_label_set_text(title_label, "Merhaba Arduino, I'm LVGL!(V" GFX_STR(LVGL_VERSION_MAJOR) "." GFX_STR(LVGL_VERSION_MINOR) "." GFX_STR(LVGL_VERSION_PATCH) ")");
     lv_obj_align(title_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
     // Button Widget
